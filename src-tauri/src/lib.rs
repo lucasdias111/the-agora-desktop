@@ -1,15 +1,32 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+mod login_service;
+mod message_service;
+mod websocket;
+
+use login_service::{get_stored_token, login};
+use message_service::send_message_to_user;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use websocket::{connect_websocket, WsSender};
+
+use crate::login_service::AuthState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let ws_sender: WsSender = Arc::new(Mutex::new(None));
+
     tauri::Builder::default()
+        .manage(ws_sender)
+        .manage(AuthState {
+            token: Mutex::new(None),
+        })
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            connect_websocket,
+            send_message_to_user,
+            login,
+            get_stored_token,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

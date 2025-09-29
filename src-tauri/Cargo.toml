@@ -1,11 +1,9 @@
 [package]
-name = "agora-client"
+name = "agora-desktop"
 version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
@@ -26,4 +24,4 @@ tokio = { version = "1.0", features = ["full"] }
 tokio-tungstenite = "0.20"
 futures-util = "0.3"
 tauri-plugin-http = "2"
-
+reqwest = { version = "0.11", features = ["json"] }
