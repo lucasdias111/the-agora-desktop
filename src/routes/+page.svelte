@@ -31,7 +31,7 @@
 </script>
 
 <div class="container">
-  <h1>agora</h1>
+  <h1>the agora</h1>
   <form class="row" onsubmit={handleLogin}>
     <input type="text" name="username" bind:value={username} />
     <input type="password" name="password" bind:value={password} />

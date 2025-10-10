@@ -68,7 +68,7 @@
 <div class="app">
   <!-- Top bar -->
   <div class="topbar">
-    <h1>agora</h1>
+    <h1>the agora</h1>
   </div>
 
   <div class="content">
