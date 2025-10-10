@@ -1,9 +1,11 @@
 mod login_service;
 mod message_service;
 mod websocket;
+mod users_service;
 
 use login_service::{get_stored_token, login};
 use message_service::send_message_to_user;
+use users_service::get_all_users_for_server;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use websocket::{connect_websocket, WsSender};
@@ -22,6 +24,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            get_all_users_for_server,
             connect_websocket,
             send_message_to_user,
             login,

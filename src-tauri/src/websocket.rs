@@ -13,7 +13,7 @@ pub async fn connect_websocket(
     window: tauri::Window,
     sender: tauri::State<'_, WsSender>,
 ) -> Result<String, String> {
-    let ws_url = format!("ws://localhost:8080/ws?token={}", token);
+    let ws_url = format!("ws://localhost:8081/ws?token={}", token);
 
     let (ws_stream, _) = connect_async(ws_url).await.map_err(|e| e.to_string())?;
     let (mut write, mut read) = ws_stream.split();

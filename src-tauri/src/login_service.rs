@@ -1,7 +1,6 @@
 use tauri::State;
 use tokio::sync::Mutex;
 
-// Store token in app state
 pub struct AuthState {
     pub token: Mutex<Option<String>>,
 }
