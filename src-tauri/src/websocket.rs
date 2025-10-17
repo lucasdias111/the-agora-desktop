@@ -1,4 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::Emitter;
 use tokio::sync::mpsc;
@@ -6,6 +7,15 @@ use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 pub type WsSender = Arc<Mutex<Option<mpsc::UnboundedSender<String>>>>;
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct WsMessage {
+    #[serde(rename = "type")]
+    msg_type: String,
+    #[serde(rename = "userJson")]
+    user: String,
+    timestamp: Option<i64>,
+    payload: Option<serde_json::Value>,
+}
 
 #[tauri::command]
 pub async fn connect_websocket(
@@ -31,7 +41,24 @@ pub async fn connect_websocket(
     tokio::spawn(async move {
         while let Some(msg) = read.next().await {
             if let Ok(Message::Text(text)) = msg {
-                let _ = window.emit("ws-message", &text);
+                if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
+                    match ws_msg.msg_type.as_str() {
+                        "USER_LOGIN" => {
+                            let _ = window.emit("ws_login", ws_msg.user);
+                        }
+                        "USER_LOGOUT" => {
+                            let _ = window.emit("ws_logout", ws_msg.user);
+                        }
+                        "SEND_MESSAGE" => {
+                            let _ = window.emit("ws_message_received", &ws_msg);
+                        }
+                        _ => {
+                            println!("Unknown message type: {}", ws_msg.msg_type);
+                        }
+                    }
+                } else {
+                    eprintln!("Failed to parse WebSocket message: {}", text);
+                }
             }
         }
     });
