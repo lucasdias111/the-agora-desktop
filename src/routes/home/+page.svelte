@@ -1,65 +1,28 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { listen } from "@tauri-apps/api/event";
   import { onMount } from "svelte";
   import Sidebar from "$lib/components/UsersSidebar.svelte";
   import ChatArea from "$lib/components/ChatWindow.svelte";
   import Header from "$lib/components/MainHeader.svelte";
+  import type {User} from "$lib/models/User";
+  import { currentUser } from '$lib/stores/userStores';
 
-  let messages = $state([
-    {
-      message: "",
-    },
-  ]);
   let messageInput = $state("");
-  let users = $state<string[]>([]);
   let chatArea: ChatArea;
 
   onMount(() => {
+    getCurrentUser();
     connectWebSocket();
-    getAllUsersForServer().then((fetchedUsers) => {
-      users = fetchedUsers;
-    });
   });
 
-  async function getAllUsersForServer(): Promise<string[]> {
+  async function getCurrentUser() {
     try {
-      return await invoke("get_all_users_for_server");
+      const user = await invoke<User>("get_current_user");
+      currentUser.set(user);
     } catch (error) {
-      console.log("Error getting users");
-      return [];
+      console.error("Error getting current user:", error);
     }
   }
-
-  async function sendMessage(toUserId: string, messageText: string) {
-    try {
-      await invoke("send_message_to_user", {
-        toUserId: "lucas2",
-        messageText: messageText,
-      });
-      messageInput = "";
-      console.log("Message sent successfully");
-    } catch (error) {
-      console.error("Failed to send message:", error);
-    }
-  }
-
-  function handleSendMessage(event: SubmitEvent) {
-    event.preventDefault();
-    sendMessage("lucas2", messageInput);
-  }
-
-  listen<string>("ws_login", (event) => {
-    users = [...users, event.payload];
-  });
-
-  listen("ws_logout", (event) => {
-    users = users.filter(user => user !== event.payload);
-  });
-
-  listen("ws_message_received", (event) => {
-    console.log(event.payload);
-  });
 
   async function connectWebSocket() {
     try {
@@ -76,28 +39,26 @@
     }
   }
 
-  function handleUserSelected(userId: number) {
-    chatArea?.loadMessagesForUser(userId);
+  function handleUserSelected(user: User) {
+    chatArea?.selectUser(user);
   }
 </script>
 
 <div class="app">
   <Header />
   <div class="content">
-    <Sidebar {users} onUserSelected={handleUserSelected} />
+    <Sidebar onUserSelected={handleUserSelected} />
     <ChatArea
-      bind:this={chatArea}
-      {messages}
-      {messageInput}
-      onMessageInputChange={(value) => (messageInput = value)}
-      onSendMessage={handleSendMessage}
+            bind:this={chatArea}
+            {messageInput}
+            onMessageInputChange={(value) => (messageInput = value)}
     />
   </div>
 </div>
 
 <style>
   .app {
-    height: 100vh;
+    height: 97.5vh;
     display: flex;
     flex-direction: column;
   }

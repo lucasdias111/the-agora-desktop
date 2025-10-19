@@ -1,18 +1,48 @@
 <script lang="ts">
+  import type {User} from "$lib/models/User";
+  import {onMount} from "svelte";
+  import {invoke} from "@tauri-apps/api/core";
+  import {listen} from "@tauri-apps/api/event";
+  import {currentUser} from "$lib/stores/userStores";
+
   interface Props {
-    users: string[];
-    onUserSelected: (userId: number) => void;
+    onUserSelected: (user: User) => void;
   }
 
-  let { users, onUserSelected }: Props = $props();
+  let { onUserSelected }: Props = $props();
+  let users = $state<User[]>([]);
+
+  onMount(() => {
+    getAllUsersForServer().then((fetchedUsers) => {
+      users = fetchedUsers.filter(u => u.id !== $currentUser?.id);
+    });
+  });
+
+  async function getAllUsersForServer(): Promise<User[]> {
+    try {
+      return await invoke("get_all_users_for_server");
+    } catch (error) {
+      console.log("Error getting users");
+      return [];
+    }
+  }
+
+  listen<User>("ws_login", (event) => {
+    users = [...users, event.payload];
+  });
+
+  listen<User>("ws_logout", (event) => {
+    users = users.filter(user => user.id !== event.payload.id);
+  });
+
 </script>
 
 <div class="sidebar">
   <h3>Users</h3>
   <ul>
-    {#each users as user, index}
+    {#each users as user}
       <li>
-        <button onclick={() => onUserSelected(index)}>{user}</button>
+        <button onclick={() => onUserSelected(user)}>{user.username}</button>
       </li>
     {/each}
   </ul>

@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 use websocket::{connect_websocket, WsSender};
 
 use crate::login_service::AuthState;
+use crate::users_service::get_current_user;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -31,6 +32,7 @@ pub fn run() {
             send_message_to_user,
             login,
             get_stored_token,
+            get_current_user
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

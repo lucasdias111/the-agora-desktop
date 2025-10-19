@@ -1,19 +1,20 @@
 use crate::{login_service::AuthState, WsSender};
 use serde::{Deserialize, Serialize};
 use tauri::State;
+use crate::websocket::ChatMessage;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WebSocketMessage {
     #[serde(rename = "type")]
     message_type: String,
     #[serde(rename = "toUserId")]
-    to_user_id: String,
+    to_user_id: i64,
     message: String,
 }
 
 #[tauri::command]
 pub async fn send_message_to_user(
-    to_user_id: String,
+    to_user_id: i64,
     message_text: String,
     sender: tauri::State<'_, WsSender>,
 ) -> Result<String, String> {
@@ -37,10 +38,18 @@ pub async fn send_message_to_user(
 }
 
 #[tauri::command]
-pub async fn get_message_history_for_user(from_user_id: i32, to_user_id: i32, auth_state: State<'_, AuthState>) -> Result<String, String> {
+pub async fn get_message_history_for_user(
+    from_user_id: i64,
+    to_user_id: i64,
+    auth_state: State<'_, AuthState>
+) -> Result<Vec<ChatMessage>, String> {
+    let token = auth_state.token.lock().await.clone()
+        .ok_or("No token found")?;
+
     let client = reqwest::Client::new();
     let response = client
         .get("http://localhost:8080/chat_messages/get_chat_history")
+        .header("Authorization", format!("Bearer {}", token))
         .query(&[
             ("userId", from_user_id.to_string()),
             ("toUserId", to_user_id.to_string())
@@ -49,11 +58,13 @@ pub async fn get_message_history_for_user(from_user_id: i32, to_user_id: i32, au
         .await
         .map_err(|e| e.to_string())?;
 
-    print!("Loggin in");
-
     if response.status().is_success() {
-        let body = response.text().await.map_err(|e| e.to_string())?;
-        Ok(body)
+        let messages: Vec<ChatMessage> = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+        Ok(messages)
     } else {
         Err(format!("Request failed with status: {}", response.status()))
     }
